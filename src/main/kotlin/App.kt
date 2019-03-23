@@ -78,6 +78,17 @@ class App(private val gson: Gson) {
             }
 
     fun execute() {
+        // DONE: Fetch sncf-gares-et-arrets-transilien-ile-de-france.json
+        // TODO: Fetch sncf-lignes-par-gares-idf.json
+        // TODO: Fetch navitia-transit-commute-by-station.json
+        // TODO: Fetch google-car-commute-by-station.json
+        // TODO: Display UIC of Transilien stations that are not RER
+        // TODO: Display name of each station
+        // TODO: Display city of each station
+        // TODO: Display the duration of commute 1 from the station to evtech
+        // TODO: Display the duration of commute 2 from the station to Gustave Roussy
+        // TODO: Filter commute 1 < 60 min
+        // TODO: Filter commute 2 < 60 min
         val cities = findCitiesContainingTrainStation()
         println("${cities.size} cities found:")
         println(cities.joinToString("\n") { "- ${it.name}" })
