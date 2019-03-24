@@ -50,13 +50,13 @@ data class Parameters(
 
 class App(private val gson: Gson) {
 
-    private fun findCitiesContainingTrainStation(): List<KnCity> {
+    private fun findTrainStations(): List<KnStation> {
         val body = fetchStationsDataset()
         return gson.fromJson(body, SnResponse::class.java).records
-                ?.map { KnCity(it?.fields?.commune, it?.fields?.code_uic) }
+                ?.map { KnStation(it?.fields?.commune, it?.fields?.code_uic) }
                 ?.distinctBy { it.uicCode }
-                ?.filter { it.name?.isNotEmpty() == true }
-                ?.sortedBy { it.name }
+                ?.filter { it.cityName?.isNotEmpty() == true }
+                ?.sortedBy { it.cityName }
                 ?: listOf()
     }
 
@@ -81,20 +81,20 @@ class App(private val gson: Gson) {
 
     fun execute() {
         // TODO: Display UIC of Transilien stations that are not RER
-        // TODO: Display name of each station
+        // TODO: Display cityName of each station
         // TODO: Display city of each station
         // TODO: Display the duration of commute 1 from the station to evtech
         // TODO: Display the duration of commute 2 from the station to Gustave Roussy
         // TODO: Filter commute 1 < 60 min
         // TODO: Filter commute 2 < 60 min
-        // TODO: Display station name, city, commute 1, commute 2
-        val cities = findCitiesContainingTrainStation()
-        println("${cities.size} cities found:")
-        println(cities.joinToString("\n") { "- ${it.name}, ${it.uicCode}" })
+        // TODO: Display station cityName, city, commute 1, commute 2
+        val stations = findTrainStations()
+        println("${stations.size} stations found:")
+        println(stations.joinToString("\n") { "- ${it.cityName}, ${it.uicCode}" })
     }
 }
 
-data class KnCity(val name: String?, val uicCode: String?)
+data class KnStation(val cityName: String?, val uicCode: String?)
 
 fun main(args: Array<String>) {
     App(GsonBuilder().setPrettyPrinting().create()).execute()
