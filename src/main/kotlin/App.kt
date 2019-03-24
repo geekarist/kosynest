@@ -38,7 +38,9 @@ data class Fields(
         val uic7: String?,
         val x_lambert_ii_etendu: Double?,
         val y_lambert_ii_etendu: Double?,
-        val zone_navigo: Double?
+        val zone_navigo: Double?,
+        val rer: Int?,
+        val train: Int?
 )
 
 data class Parameters(
@@ -57,7 +59,30 @@ class App(private val gson: Gson) {
                 ?.distinctBy { it.uicCode }
                 ?.filter { it.cityName?.isNotEmpty() == true }
                 ?.sortedBy { it.cityName }
+                ?.filter { isNotRer(it) }
                 ?: listOf()
+    }
+
+    private fun isNotRer(it: KnStation): Boolean {
+        val url = "https://data.sncf.com/api/records/1.0/search//?dataset=sncf-lignes-par-gares-idf&refine.code_uic=${it.uicCode}"
+        File("cache").mkdirs()
+        val responseJson = File("cache/${url.hashCode()}.json").let { cachedFile ->
+            if (cachedFile.exists()) {
+                println("Load cached dataset: ${cachedFile.toPath().fileName}")
+                cachedFile.readText()
+            } else {
+                println("Fetch dataset from web service: $url")
+                val request = Request.Builder().url(url).build()
+                val client = OkHttpClient()
+                val json = client.newCall(request).execute().body()?.charStream()?.readText()
+                        ?: throw Error("Remote dataset is null")
+                cachedFile.writeText(json)
+                json
+            }
+        }
+        val responseObj = gson.fromJson(responseJson, SnResponse::class.java)
+        val fields = responseObj.records?.getOrNull(0)?.fields
+        return fields?.train == 1 && fields.rer != 1
     }
 
     private fun fetchStationsDataset(): String? {
@@ -81,7 +106,7 @@ class App(private val gson: Gson) {
 
     fun execute() {
         // TODO: Display UIC of Transilien stations that are not RER
-        // TODO: Display cityName of each station
+        // TODO: Display name of each station
         // TODO: Display city of each station
         // TODO: Display the duration of commute 1 from the station to evtech
         // TODO: Display the duration of commute 2 from the station to Gustave Roussy
