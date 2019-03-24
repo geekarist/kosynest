@@ -55,7 +55,7 @@ class App(private val gson: Gson) {
     private fun findTrainStations(): List<KnStation> {
         val body = fetchStationsDataset()
         return gson.fromJson(body, SnResponse::class.java).records
-                ?.map { KnStation(it?.fields?.commune, it?.fields?.code_uic) }
+                ?.map { KnStation(name = it?.fields?.nom_gare, cityName = it?.fields?.commune, uicCode = it?.fields?.code_uic) }
                 ?.distinctBy { it.uicCode }
                 ?.filter { it.cityName?.isNotEmpty() == true }
                 ?.sortedBy { it.cityName }
@@ -105,9 +105,9 @@ class App(private val gson: Gson) {
     }
 
     fun execute() {
-        // TODO: Display UIC of Transilien stations that are not RER
-        // TODO: Display name of each station
-        // TODO: Display city of each station
+        // DONE: Display UIC of Transilien stations that are not RER
+        // DONE: Display name of each station
+        // DONE: Display city of each station
         // TODO: Display the duration of commute 1 from the station to evtech
         // TODO: Display the duration of commute 2 from the station to Gustave Roussy
         // TODO: Filter commute 1 < 60 min
@@ -115,11 +115,11 @@ class App(private val gson: Gson) {
         // TODO: Display station cityName, city, commute 1, commute 2
         val stations = findTrainStations()
         println("${stations.size} stations found:")
-        println(stations.joinToString("\n") { "- ${it.cityName}, ${it.uicCode}" })
+        println(stations.joinToString("\n") { "- ${it.cityName}, ${it.name}, ${it.uicCode}" })
     }
 }
 
-data class KnStation(val cityName: String?, val uicCode: String?)
+data class KnStation(val name: String?, val cityName: String?, val uicCode: String?)
 
 fun main(args: Array<String>) {
     App(GsonBuilder().setPrettyPrinting().create()).execute()
