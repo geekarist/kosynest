@@ -53,35 +53,33 @@ class App(private val gson: Gson) {
     private fun findCitiesContainingTrainStation(): List<KnCity> {
         val body = fetchStationsDataset()
         return gson.fromJson(body, SnResponse::class.java).records
-                ?.map { KnCity(it?.fields?.commune) }
-                ?.sortedBy { it.name }
-                ?.distinctBy { it.name }
+                ?.map { KnCity(it?.fields?.commune, it?.fields?.code_uic) }
+                ?.distinctBy { it.uicCode }
                 ?.filter { it.name?.isNotEmpty() == true }
+                ?.sortedBy { it.name }
                 ?: listOf()
     }
 
-    private fun fetchStationsDataset(): String? = File("sncf-gares-et-arrets-transilien-ile-de-france.json")
-            .let { file ->
-                if (file.exists()) {
-                    println("Load cached dataset: ${file.toPath().fileName}")
-                    file.readText()
-                } else {
-                    val url = "https://data.sncf.com/api/records/1.0/search//?dataset=sncf-gares-et-arrets-transilien-ile-de-france&rows=10000"
-                    println("Fetch dataset from web service: ${url}")
-                    val request = Request.Builder().url(url).build()
-                    val client = OkHttpClient()
-                    val json = client.newCall(request).execute().body()?.charStream()?.readText()
-                            ?: throw Error("Remote dataset is null")
-                    file.writeText(json)
-                    json
-                }
+    private fun fetchStationsDataset(): String? {
+        val url = "https://data.sncf.com/api/records/1.0/search//?dataset=sncf-gares-et-arrets-transilien-ile-de-france&rows=10000"
+        File("cache").mkdirs()
+        return File("cache/${url.hashCode()}.json").let { cachedFile ->
+            if (cachedFile.exists()) {
+                println("Load cached dataset: ${cachedFile.toPath().fileName}")
+                cachedFile.readText()
+            } else {
+                println("Fetch dataset from web service: $url")
+                val request = Request.Builder().url(url).build()
+                val client = OkHttpClient()
+                val json = client.newCall(request).execute().body()?.charStream()?.readText()
+                        ?: throw Error("Remote dataset is null")
+                cachedFile.writeText(json)
+                json
             }
+        }
+    }
 
     fun execute() {
-        // DONE: Fetch sncf-gares-et-arrets-transilien-ile-de-france.json
-        // TODO: Fetch sncf-lignes-par-gares-idf.json
-        // TODO: Fetch navitia-transit-station-to-evtech.json
-        // TODO: Fetch google-car-station-to-igr.json
         // TODO: Display UIC of Transilien stations that are not RER
         // TODO: Display name of each station
         // TODO: Display city of each station
@@ -92,11 +90,11 @@ class App(private val gson: Gson) {
         // TODO: Display station name, city, commute 1, commute 2
         val cities = findCitiesContainingTrainStation()
         println("${cities.size} cities found:")
-        println(cities.joinToString("\n") { "- ${it.name}" })
+        println(cities.joinToString("\n") { "- ${it.name}, ${it.uicCode}" })
     }
 }
 
-data class KnCity(val name: String?)
+data class KnCity(val name: String?, val uicCode: String?)
 
 fun main(args: Array<String>) {
     App(GsonBuilder().setPrettyPrinting().create()).execute()
