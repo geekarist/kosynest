@@ -48,7 +48,14 @@ class App(private val gson: Gson) {
      * @return the duration in milliseconds
      */
     private fun carItineraryDurationMs(from: KnLocation?, to: KnLocation): Long {
-        return TimeUnit.MINUTES.toMillis(42)
+        val orig = "48.893205,2.237082"
+        val dest = "48.79444,2.348062"
+        val mode = "driving"
+        val key = "AIzaSyDgj6Fm2RTlGBDXlSSjGMxpQD4tZTvM8nU"
+        val host = "maps.googleapis.com"
+        val path = "maps/api/directions/json"
+        val url = "https://$host/$path?origin=$orig&destination=$dest&key=$key&mode=$mode"
+        TODO("Deserialize in x.kt")
     }
 
     private fun isNotRer(it: KnStation): Boolean {
