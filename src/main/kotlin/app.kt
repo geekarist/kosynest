@@ -5,52 +5,6 @@ import okhttp3.Request
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-data class SnResponse(
-    val nhits: Int?,
-    val parameters: Parameters?,
-    val records: List<Record?>?
-)
-
-data class Record(
-    val datasetid: String?,
-    val fields: Fields?,
-    val geometry: Geometry?,
-    val record_timestamp: String?,
-    val recordid: String?
-)
-
-data class Geometry(
-    val coordinates: List<Double?>?,
-    val type: String?
-)
-
-data class Fields(
-    val adresse: String?,
-    val code_insee_commune: String?,
-    val code_uic: String?,
-    val commune: String?,
-    val coord_gps_wgs84: List<Double?>?,
-    val gare_non_sncf: Double?,
-    val libelle: String?,
-    val libelle_point_d_arret: String?,
-    val libelle_sms_gare: String?,
-    val libelle_stif_info_voyageurs: String?,
-    val nom_gare: String?,
-    val uic7: String?,
-    val x_lambert_ii_etendu: Double?,
-    val y_lambert_ii_etendu: Double?,
-    val zone_navigo: Double?,
-    val rer: Int?,
-    val train: Int?
-)
-
-data class Parameters(
-    val dataset: List<String?>?,
-    val format: String?,
-    val rows: Int?,
-    val timezone: String?
-)
-
 class App(private val gson: Gson) {
 
     private fun findTrainStations(): List<KnStation> {
@@ -61,7 +15,7 @@ class App(private val gson: Gson) {
                     name = record?.fields?.nom_gare,
                     cityName = record?.fields?.commune,
                     uicCode = record?.fields?.code_uic,
-                    location = Location(
+                    location = KnLocation(
                         record?.fields?.coord_gps_wgs84?.getOrNull(0),
                         record?.fields?.coord_gps_wgs84?.getOrNull(1),
                         record?.fields?.nom_gare
@@ -85,7 +39,7 @@ class App(private val gson: Gson) {
      * Duration in transit between 2 locations.
      * @return the duration in milliseconds
      */
-    private fun transitItineraryDurationMs(from: Location?, to: Location): Long {
+    private fun transitItineraryDurationMs(from: KnLocation?, to: KnLocation): Long {
         return TimeUnit.MINUTES.toMillis(51)
     }
 
@@ -93,7 +47,7 @@ class App(private val gson: Gson) {
      * Duration in car between 2 locations.
      * @return the duration in milliseconds
      */
-    private fun carItineraryDurationMs(from: Location?, to: Location): Long {
+    private fun carItineraryDurationMs(from: KnLocation?, to: KnLocation): Long {
         return TimeUnit.MINUTES.toMillis(42)
     }
 
@@ -147,28 +101,8 @@ class App(private val gson: Gson) {
     }
 
     companion object {
-        private val LOCATION_HIS_WORK = Location(lat = 48.893205, lon = 2.237082, name = "OUI")
-        private val LOCATION_HER_WORK = Location(lat = 48.79444, lon = 2.348062, name = "GR")
-    }
-}
-
-data class Location(val lat: Double?, val lon: Double?, val name: String?)
-
-data class KnStation(
-    val name: String?,
-    val cityName: String?,
-    val uicCode: String?,
-    val location: Location?,
-    val herCommuteMs: Long? = null,
-    val hisCommuteMs: Long? = null
-) {
-    val herCommuteStr get() = format(herCommuteMs, "\uD83D\uDEBA")
-    val hisCommuteStr get() = format(hisCommuteMs, "\uD83D\uDEB9")
-
-    private fun format(timeMs: Long?, prefix: String): String {
-        return timeMs?.let {
-            "$prefix ${TimeUnit.MILLISECONDS.toMinutes(it)} minutes"
-        } ?: "Unknown"
+        private val LOCATION_HIS_WORK = KnLocation(lat = 48.893205, lon = 2.237082, name = "OUI")
+        private val LOCATION_HER_WORK = KnLocation(lat = 48.79444, lon = 2.348062, name = "GR")
     }
 }
 
