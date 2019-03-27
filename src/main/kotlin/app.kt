@@ -3,6 +3,8 @@ import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.io.FileReader
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 class App(private val gson: Gson) {
@@ -24,13 +26,17 @@ class App(private val gson: Gson) {
             }
             ?.distinctBy { it.uicCode }
             ?.filter { it.cityName?.isNotEmpty() == true }
+            ?.filter { it.cityName?.startsWith("Th") == true }
             ?.sortedBy { it.cityName }
             ?.filter { isNotRer(it) }
-            ?.map {
-                it.copy(
-                    herCommuteMs = carItineraryDurationMs(it.location, LOCATION_HER_WORK),
-                    hisCommuteMs = transitItineraryDurationMs(it.location, LOCATION_HIS_WORK)
-                )
+            ?.map { knStation ->
+                val herCommuteMs = knStation.location?.let {
+                    carItineraryDurationMs(it, LOCATION_HER_WORK)
+                }
+                val hisCommuteMs = knStation.location?.let {
+                    transitItineraryDurationMs(knStation.location, LOCATION_HIS_WORK)
+                }
+                knStation.copy(herCommuteMs = herCommuteMs, hisCommuteMs = hisCommuteMs)
             }
             ?: listOf()
     }
@@ -43,19 +49,27 @@ class App(private val gson: Gson) {
         return TimeUnit.MINUTES.toMillis(51)
     }
 
+    private val configuration by lazy { Properties().apply { load(FileReader("private/conf.properties")) } }
+
     /**
      * Duration in car between 2 locations.
      * @return the duration in milliseconds
      */
-    private fun carItineraryDurationMs(from: KnLocation?, to: KnLocation): Long {
-        val orig = "48.893205,2.237082"
-        val dest = "48.79444,2.348062"
+    private fun carItineraryDurationMs(from: KnLocation, to: KnLocation): Long? {
+
+        val orig = "${from.lat},${from.lon}"
+        val dest = "${to.lat},${to.lon}"
         val mode = "driving"
-        val key = "AIzaSyDgj6Fm2RTlGBDXlSSjGMxpQD4tZTvM8nU"
+        val key = configuration["google.api.key"]
         val host = "maps.googleapis.com"
         val path = "maps/api/directions/json"
         val url = "https://$host/$path?origin=$orig&destination=$dest&key=$key&mode=$mode"
-        TODO("Deserialize in x.kt")
+
+        val json = fetch(url)
+        val deserialized = gson.fromJson(json, GdResponse::class.java)
+
+        val durationSec = deserialized?.routes?.getOrNull(0)?.legs?.getOrNull(0)?.duration?.value?.toLong()
+        return durationSec?.let { TimeUnit.SECONDS.toMillis(it) }
     }
 
     private fun isNotRer(it: KnStation): Boolean {
