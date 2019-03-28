@@ -24,9 +24,9 @@ class App(private val gson: Gson) {
                     )
                 )
             }
+            ?.also { println("${it.size} stations found") }
             ?.distinctBy { it.uicCode }
             ?.filter { it.cityName?.isNotEmpty() == true }
-            ?.filter { it.cityName?.startsWith("Th") == true }
             ?.sortedBy { it.cityName }
             ?.filter { isNotRer(it) }
             ?.map { knStation ->
@@ -115,6 +115,7 @@ class App(private val gson: Gson) {
         // TODO: Filter commute 2 < 60 min
         // TODO: Display station cityName, city, commute 1, commute 2
         val stations = findTrainStations()
+        println()
         println("${stations.size} stations found:")
         println(stations.joinToString("\n") {
             "- ${it.cityName}, ${it.name}, ${it.uicCode}, ${it.herCommuteStr}, ${it.hisCommuteStr}"
