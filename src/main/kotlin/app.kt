@@ -1,5 +1,6 @@
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -24,6 +25,7 @@ class App(private val gson: Gson) {
                     )
                 )
             }
+            ?.filter { it.cityName?.startsWith("T") == true }
             ?.also { println("${it.size} stations found") }
             ?.distinctBy { it.uicCode }
             ?.filter { it.cityName?.isNotEmpty() == true }
@@ -45,7 +47,16 @@ class App(private val gson: Gson) {
      * Duration in transit between 2 locations.
      * @return the duration in milliseconds
      */
-    private fun transitItineraryDurationMs(from: KnLocation?, to: KnLocation): Long {
+    private fun transitItineraryDurationMs(from: KnLocation, to: KnLocation): Long {
+        val baseUrl = "https://api.sncf.com/v1/coverage/sncf/journeys"
+        val fromValue = "${from.lat},${from.lon}"
+        val toValue = "${to.lat},${to.lon}"
+        val dateTimeValue = "20190317T181120"
+        val url = "$baseUrl?from=$fromValue&to=$toValue&datetime=$dateTimeValue"
+        val keyClear = configuration["navitia.api.key"]
+        val keyBase64 = Base64.getEncoder().encode("$keyClear:".toByteArray())
+        val headers = Headers.of(mapOf("Authorization" to "Basic $keyBase64"))
+        val json = fetch(url, headers)
         return TimeUnit.MINUTES.toMillis(51)
     }
 
@@ -81,7 +92,7 @@ class App(private val gson: Gson) {
         return fields?.train == 1 && fields.rer != 1
     }
 
-    private fun fetch(url: String): String {
+    private fun fetch(url: String, headers: Headers = Headers.of()): String {
         File("cache").mkdirs()
         return File("cache/${url.hashCode()}.json").let { cachedFile ->
             if (cachedFile.exists()) {
@@ -89,7 +100,10 @@ class App(private val gson: Gson) {
                 cachedFile.readText()
             } else {
                 println("Fetch dataset from web service: $url")
-                val request = Request.Builder().url(url).build()
+                val request = Request.Builder()
+                    .url(url)
+                    .headers(headers)
+                    .build()
                 val client = OkHttpClient()
                 val json = client.newCall(request).execute().body()?.charStream()?.readText()
                     ?: throw Error("Remote dataset is null")
@@ -109,14 +123,14 @@ class App(private val gson: Gson) {
         // DONE: Display UIC of Transilien stations that are not RER
         // DONE: Display name of each station
         // DONE: Display city of each station
-        // TODO: Display the duration of commute 1 from the station to evtech
-        // TODO: Display the duration of commute 2 from the station to Gustave Roussy
+        // DONE: Display the duration of commute from the station to Gustave Roussy
+        // TODO: Display the duration of commute from the station to evtech
         // TODO: Filter commute 1 < 60 min
         // TODO: Filter commute 2 < 60 min
         // TODO: Display station cityName, city, commute 1, commute 2
         val stations = findTrainStations()
         println()
-        println("${stations.size} stations found:")
+        println("${stations.size} matching stations:")
         println(stations.joinToString("\n") {
             "- ${it.cityName}, ${it.name}, ${it.uicCode}, ${it.herCommuteStr}, ${it.hisCommuteStr}"
         })
