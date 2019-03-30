@@ -25,7 +25,7 @@ class App(private val gson: Gson) {
                     )
                 )
             }
-            ?.filter { it.cityName?.startsWith("T") == true }
+            //?.filter { it.cityName?.startsWith("E") == true }
             ?.also { println("${it.size} stations found") }
             ?.asSequence()
             ?.distinctBy { it.uicCode }
@@ -37,9 +37,14 @@ class App(private val gson: Gson) {
                     carItineraryDurationMs(it, LOCATION_HER_WORK)
                 }
                 val hisCommuteMs = knStation.location?.let {
-                    transitItineraryDurationMs(knStation.location, LOCATION_HIS_WORK)
+                    transitItineraryDurationMs(it, LOCATION_HIS_WORK)
                 }
                 knStation.copy(herCommuteMs = herCommuteMs, hisCommuteMs = hisCommuteMs)
+            }?.filter {
+                it.hisCommuteMs != null
+                        && it.herCommuteMs != null
+                        && it.hisCommuteMs < TimeUnit.MINUTES.toMillis(90)
+                        && it.herCommuteMs < TimeUnit.MINUTES.toMillis(90)
             }
             ?.toList()
             ?: listOf()
@@ -53,7 +58,7 @@ class App(private val gson: Gson) {
         val baseUrl = "https://api.sncf.com/v1/coverage/sncf/journeys"
         val fromValue = "${from.lon};${from.lat}"
         val toValue = "${to.lon};${to.lat}"
-        val dateTimeValue = "20190317T181120"
+        val dateTimeValue = "20190319T090000"
         val url = "$baseUrl?from=$fromValue&to=$toValue&datetime=$dateTimeValue"
         val keyClear = configuration["navitia.api.key"]
         val keyBase64 = Base64.getEncoder().encodeToString("$keyClear:".toByteArray())
@@ -128,10 +133,10 @@ class App(private val gson: Gson) {
         // DONE: Display name of each station
         // DONE: Display city of each station
         // DONE: Display the duration of commute from the station to Gustave Roussy
-        // TODO: Display the duration of commute from the station to evtech
-        // TODO: Filter commute 1 < 60 min
-        // TODO: Filter commute 2 < 60 min
-        // TODO: Display station cityName, city, commute 1, commute 2
+        // DONE: Display the duration of commute from the station to evtech
+        // DONE: Filter commute 1 < 60 min
+        // DONE: Filter commute 2 < 60 min
+        // DONE: Display station cityName, city, commute 1, commute 2
         val stations = findTrainStations()
         println()
         println("${stations.size} matching stations:")
