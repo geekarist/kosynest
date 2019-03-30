@@ -27,6 +27,7 @@ class App(private val gson: Gson) {
             }
             ?.filter { it.cityName?.startsWith("T") == true }
             ?.also { println("${it.size} stations found") }
+            ?.asSequence()
             ?.distinctBy { it.uicCode }
             ?.filter { it.cityName?.isNotEmpty() == true }
             ?.sortedBy { it.cityName }
@@ -40,6 +41,7 @@ class App(private val gson: Gson) {
                 }
                 knStation.copy(herCommuteMs = herCommuteMs, hisCommuteMs = hisCommuteMs)
             }
+            ?.toList()
             ?: listOf()
     }
 
@@ -47,17 +49,19 @@ class App(private val gson: Gson) {
      * Duration in transit between 2 locations.
      * @return the duration in milliseconds
      */
-    private fun transitItineraryDurationMs(from: KnLocation, to: KnLocation): Long {
+    private fun transitItineraryDurationMs(from: KnLocation, to: KnLocation): Long? {
         val baseUrl = "https://api.sncf.com/v1/coverage/sncf/journeys"
-        val fromValue = "${from.lat},${from.lon}"
-        val toValue = "${to.lat},${to.lon}"
+        val fromValue = "${from.lon};${from.lat}"
+        val toValue = "${to.lon};${to.lat}"
         val dateTimeValue = "20190317T181120"
         val url = "$baseUrl?from=$fromValue&to=$toValue&datetime=$dateTimeValue"
         val keyClear = configuration["navitia.api.key"]
-        val keyBase64 = Base64.getEncoder().encode("$keyClear:".toByteArray())
+        val keyBase64 = Base64.getEncoder().encodeToString("$keyClear:".toByteArray())
         val headers = Headers.of(mapOf("Authorization" to "Basic $keyBase64"))
         val json = fetch(url, headers)
-        return TimeUnit.MINUTES.toMillis(51)
+        val response = gson.fromJson(json, NavitiaResponse::class.java)
+        val durationSec = response.journeys?.get(0)?.duration?.toLong()
+        return durationSec?.let { TimeUnit.SECONDS.toMillis(it) }
     }
 
     private val configuration by lazy { Properties().apply { load(FileReader("private/conf.properties")) } }
