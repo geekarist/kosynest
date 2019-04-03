@@ -9,6 +9,7 @@ import java.time.DayOfWeek
 import java.time.Period
 import java.time.temporal.ChronoField
 import java.util.*
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 class App(private val gson: Gson) {
@@ -28,7 +29,7 @@ class App(private val gson: Gson) {
                     )
                 )
             }
-            //?.filter { it.cityName?.startsWith("Ev") == true }
+            //?.filter { it.cityName?.startsWith("E") == true }
             ?.also { println("${it.size} stations found") }
             ?.asSequence()
             ?.distinctBy { it.uicCode }
@@ -98,13 +99,14 @@ class App(private val gson: Gson) {
     }
 
     private fun nextMondayEpochSec(): Long {
-        val resultMsec = Date().toInstant()
-            .plus(Period.ofWeeks(1))
-            .with(
-                ChronoField.DAY_OF_WEEK,
-                DayOfWeek.MONDAY.getLong(ChronoField.DAY_OF_WEEK)
-            ).toEpochMilli()
-        return TimeUnit.MILLISECONDS.toSeconds(resultMsec)
+        val nowMsec = Date().time
+        val nextWeekMsec = nowMsec + TimeUnit.DAYS.toMillis(7)
+        val nextWeekDate = Date(nextWeekMsec)
+        val calendar = Calendar.getInstance()
+        calendar.time = nextWeekDate
+        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        val nextMondayMsec = calendar.timeInMillis
+        return TimeUnit.MILLISECONDS.toSeconds(nextMondayMsec)
     }
 
     private fun isNotRer(it: KnStation): Boolean {
