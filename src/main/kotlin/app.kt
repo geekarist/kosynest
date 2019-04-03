@@ -5,6 +5,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.FileReader
+import java.time.DayOfWeek
+import java.time.Period
+import java.time.temporal.ChronoField
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -25,7 +28,7 @@ class App(private val gson: Gson) {
                     )
                 )
             }
-            //?.filter { it.cityName?.startsWith("E") == true }
+            //?.filter { it.cityName?.startsWith("Ev") == true }
             ?.also { println("${it.size} stations found") }
             ?.asSequence()
             ?.distinctBy { it.uicCode }
@@ -83,13 +86,25 @@ class App(private val gson: Gson) {
         val key = configuration["google.api.key"]
         val host = "maps.googleapis.com"
         val path = "maps/api/directions/json"
-        val url = "https://$host/$path?origin=$orig&destination=$dest&key=$key&mode=$mode"
+        val departureTime = nextMondayEpochSec()
+
+        val url = "https://$host/$path?origin=$orig&destination=$dest&key=$key&mode=$mode&departure_time=$departureTime"
 
         val json = fetch(url)
         val deserialized = gson.fromJson(json, GdResponse::class.java)
 
         val durationSec = deserialized?.routes?.getOrNull(0)?.legs?.getOrNull(0)?.duration?.value?.toLong()
         return durationSec?.let { TimeUnit.SECONDS.toMillis(it) }
+    }
+
+    private fun nextMondayEpochSec(): Long {
+        val resultMsec = Date().toInstant()
+            .plus(Period.ofWeeks(1))
+            .with(
+                ChronoField.DAY_OF_WEEK,
+                DayOfWeek.MONDAY.getLong(ChronoField.DAY_OF_WEEK)
+            ).toEpochMilli()
+        return TimeUnit.MILLISECONDS.toSeconds(resultMsec)
     }
 
     private fun isNotRer(it: KnStation): Boolean {
